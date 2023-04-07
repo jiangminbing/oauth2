@@ -1,0 +1,14 @@
+server:
+  port: 8033
+logging:
+  level:
+    root: INFO
+#    org.springframework.web: INFO
+#    org.springframework.security: INFO
+#    org.springframework.security.oauth2: INFO
+spring:
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://10.123.35.175:3306/mytest?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true
+    username: root
+    password: tce@guangqi2019

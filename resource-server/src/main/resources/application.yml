@@ -1,0 +1,17 @@
+server:
+  port: 8090
+
+logging:
+  level:
+    root: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.security.oauth2: INFO
+#    org.springframework.boot.autoconfigure: DEBUG
+# 这段配置也比较关键，解析access_token 的授权模式
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8033 #比较关键的配置，验证token是否有效的方法
