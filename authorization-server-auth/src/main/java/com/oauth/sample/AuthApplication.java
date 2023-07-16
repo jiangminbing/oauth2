@@ -7,10 +7,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author jmb
  */
 @SpringBootApplication
-public class SampleJdbcApplication {
+public class AuthApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(SampleJdbcApplication.class, args);
+		SpringApplication.run(AuthApplication.class, args);
 	}
 
 
