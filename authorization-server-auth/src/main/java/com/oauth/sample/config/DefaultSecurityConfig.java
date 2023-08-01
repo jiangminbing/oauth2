@@ -15,7 +15,9 @@
  */
 package com.oauth.sample.config;
 
+import com.oauth.sample.support.core.FormIdentityLoginConfigurer;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.User;
@@ -36,12 +38,18 @@ public class DefaultSecurityConfig {
 	// @formatter:off
 	@Bean
 	SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-		http
-			.authorizeRequests(authorizeRequests ->
-				authorizeRequests.anyRequest().authenticated()
-			)
-			.formLogin(withDefaults());
+
+		http.authorizeRequests(authorizeRequests -> authorizeRequests.antMatchers("/token/*")
+						.permitAll()// 开放自定义的部分端点
+						.anyRequest()
+						.authenticated())
+				.headers()
+				.frameOptions()
+				.sameOrigin()// 避免iframe同源无法登录
+				.and()
+				.apply(new FormIdentityLoginConfigurer()); // 表单登录个性化
 		return http.build();
+
 	}
 	// @formatter:on
 
@@ -56,5 +64,17 @@ public class DefaultSecurityConfig {
 		return new InMemoryUserDetailsManager(user);
 	}
 	// @formatter:on
-
+	@Bean
+	@Order(0)
+	SecurityFilterChain resources(HttpSecurity http) throws Exception {
+		http.requestMatchers((matchers) -> matchers.antMatchers("/actuator/**", "/css/**", "/error"))
+				.authorizeHttpRequests((authorize) -> authorize.anyRequest().permitAll())
+				.requestCache()
+				.disable()
+				.securityContext()
+				.disable()
+				.sessionManagement()
+				.disable();
+		return http.build();
+	}
 }

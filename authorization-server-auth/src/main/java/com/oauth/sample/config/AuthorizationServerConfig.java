@@ -20,6 +20,7 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.oauth.sample.jose.Jwks;
+import com.oauth.sample.support.core.FormIdentityLoginConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -34,9 +35,15 @@ import org.springframework.security.oauth2.server.authorization.client.InMemoryR
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
+import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
+import org.springframework.security.oauth2.server.authorization.web.authentication.DelegatingAuthenticationConverter;
+import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2AuthorizationCodeRequestAuthenticationConverter;
+import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationConverter;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
 
@@ -47,13 +54,48 @@ import java.util.UUID;
 @Configuration(proxyBeanMethods = false)
 public class AuthorizationServerConfig {
 
+
 	@Bean
 	@Order(Ordered.HIGHEST_PRECEDENCE)
 	public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
+
+		// OAuth 2.1 默认配置
+		// 缺省配置：authorizeRequests.anyRequest().authenticated()、
+		// csrf.ignoringRequestMatchers(endpointsMatcher) 等等
 		OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
-		return http.formLogin(Customizer.withDefaults()).build();
+
+		// 使用 HttpSecurity 获取 OAuth 2.1 配置中的 OAuth2AuthorizationServerConfigurer 对象
+		OAuth2AuthorizationServerConfigurer authorizationServerConfigurer = http
+				.getConfigurer(OAuth2AuthorizationServerConfigurer.class);
+
+		authorizationServerConfigurer.tokenEndpoint((tokenEndpoint) -> {// 个性化认证授权端点
+					tokenEndpoint.accessTokenRequestConverter(accessTokenRequestConverter()); // 注入自定义的授权认证Converter
+							// 登录成功处理器
+							// 登录失败处理器
+				})// 处理客户端认证异常
+				.authorizationEndpoint(authorizationEndpoint -> authorizationEndpoint// 授权码端点个性化confirm页面
+						.consentPage("/token/confirm_access"));
+
+		DefaultSecurityFilterChain securityFilterChain = authorizationServerConfigurer
+//				.authorizationService(authorizationService)// redis存储token的实现
+//				.authorizationServerSettings(
+//						AuthorizationServerSettings.builder().issuer(SecurityConstants.PROJECT_LICENSE).build())
+				// 授权码登录的登录页个性化
+				.and()
+				.apply(new FormIdentityLoginConfigurer())
+				.and()
+				.build();
+
+		return securityFilterChain;
+
 	}
 
+	private AuthenticationConverter accessTokenRequestConverter() {
+		return new DelegatingAuthenticationConverter(
+				Arrays.asList(
+
+						new OAuth2AuthorizationCodeRequestAuthenticationConverter()));
+	}
 	// @formatter:off
 	@Bean
 	public RegisteredClientRepository registeredClientRepository() {
